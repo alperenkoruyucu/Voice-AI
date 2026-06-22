@@ -1,9 +1,11 @@
-const express = require('express');
 const dotenv = require('dotenv');
+dotenv.config();
+const express = require('express');
 const logger = require('./config/logger');
+require('./config/prisma');
 const healthRouter = require('./routes/health');
 
-dotenv.config();
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
