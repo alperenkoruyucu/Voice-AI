@@ -1,20 +1,155 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
+// ==========================================
+//                   ENUMS
+// ==========================================
+
+enum OrderStatus {
+  RECEIVED
+  PREPARING
+  DELIVERING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum CallStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// ==========================================
+//                  MODELS
+// ==========================================
+
+model Customer {
+  id          Int       @id @default(autoincrement())
+  phoneNumber String    @unique @map("phone_number")
+  name        String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  addresses   Address[]
+  orders      Order[]
+  calls       Call[]
+
+  @@map("customers")
+}
+
+model Address {
+  id         Int      @id @default(autoincrement())
+  customerId Int      @map("customer_id")
+  street     String
+  city       String?
+  isDefault  Boolean  @default(false) @map("is_default")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders     Order[]
+
+  @@map("addresses")
+}
+
+model MenuCategory {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  items       MenuItem[]
+
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id          Int          @id @default(autoincrement())
+  categoryId  Int          @map("category_id")
+  name        String
+  price       Float
+  isAvailable Boolean      @default(true) @map("is_available")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  category    MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  orderItems  OrderItem[]
+
+  @@map("menu_items")
+}
+
+model Call {
+  id         Int        @id @default(autoincrement())
+  customerId Int        @map("customer_id")
+  transcript String?    @db.Text
+  duration   Int?       // saniye
+  status     CallStatus @default(IN_PROGRESS)
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  orders     Order[]
+
+  @@map("calls")
+}
+
+model Order {
+  id            Int           @id @default(autoincrement())
+  customerId    Int           @map("customer_id")
+  addressId     Int           @map("address_id")
+  callId        Int?          @map("call_id")
+  status        OrderStatus   @default(RECEIVED)
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  totalAmount   Float         @default(0) @map("total_amount")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  address       Address       @relation(fields: [addressId], references: [id])
+  call          Call?         @relation(fields: [callId], references: [id])
+  items         OrderItem[]
+  payments      PaymentTransaction[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  orderId    Int      @map("order_id")
+  menuItemId Int      @map("menu_item_id")
+  quantity   Int      @default(1)
+  unitPrice  Float    @map("unit_price")
+  subtotal   Float
+
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+
+  @@map("order_items")
+}
+
+model PaymentTransaction {
+  id        Int               @id @default(autoincrement())
+  orderId   Int               @map("order_id")
+  provider  String
+  status    TransactionStatus @default(PENDING)
+  expiresAt DateTime?         @map("expires_at")
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  order     Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payment_transactions")
 }
