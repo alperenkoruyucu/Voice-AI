@@ -98,7 +98,7 @@ model Call {
   id         Int        @id @default(autoincrement())
   customerId Int        @map("customer_id")
   transcript String?    @db.Text
-  duration   Int?       // saniye
+  duration   Int?       // seconds
   status     CallStatus @default(IN_PROGRESS)
   createdAt  DateTime   @default(now()) @map("created_at")
 

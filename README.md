@@ -1,55 +1,66 @@
 # Voice AI & Restaurant Automation Backend
 
-Bu proje, Node.js (Express) ve PostgreSQL kullanılarak geliştirilen bir sesli yapay zeka sipariş ve restoran otomasyonu backend servisidir.
+A robust, production-ready backend service for voice-AI-driven food ordering and restaurant automation, built with Node.js (Express) and PostgreSQL.
 
-## 🚀 Teknolojiler
+## 🚀 Technologies
 - **Runtime:** Node.js LTS
 - **Framework:** Express.js
-- **Veritabanı:** PostgreSQL
+- **Database:** PostgreSQL
 - **ORM:** Prisma v7 (Pg-Adapter)
 - **Logger:** Pino & Pino-Pretty
 
-## 📦 Kurulum ve Çalıştırma
+## 📦 Getting Started
 
-### 1. Bağımlılıkları Yükleyin
+### 1. Install Dependencies
 ```bash
 npm install
 ```
 
-### 2. Çevre Değişkenlerini Ayarlayın
-`cp .env.example .env` komutuyla `.env` dosyanızı oluşturun ve içerisindeki `DATABASE_URL` parametresini kendi yerel PostgreSQL bilgilerinize göre doldurun:
+### 2. Configure Environment Variables
+Copy the example environment file and update the `DATABASE_URL` with your local PostgreSQL credentials:
+```bash
+cp .env.example .env
+```
 ```env
-DATABASE_URL="postgresql://kullanici:sifre@localhost:5432/voice_ai_dev?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/voice_ai_dev?schema=public"
 ```
 
-### 3. Veritabanını Hazırlayın (Migrations)
-Veritabanı tablolarını ve ilişkilerini yerel PostgreSQL motorunuza inşa etmek için:
+### 3. Run Database Migrations
+Apply the relational schema to your local PostgreSQL instance:
 ```bash
 npx prisma migrate dev
 ```
-Prisma v7 Javascript tercüman motorunu (Client) kodla eşitlemek için:
+Generate the Prisma Client (v7 JS Engine) to match the database schema:
 ```bash
 npx prisma generate
 ```
 
-### 4. Sunucuyu Başlatın
+### 4. Seed the Database
+Populate the database with initial menu categories, 12 sample menu items, and 3 VIP test customers for local development:
 ```bash
-# Geliştirme modu (Nodemon ile - Otomatik yenileme)
+npm run seed
+```
+
+### 5. Start the Server
+```bash
+# Development mode (with nodemon auto-reload)
 npm run dev
 
-# Normal mod
+# Production mode
 npm start
 ```
 
-## 🗄️ Veritabanı Şeması (8 Temel Tablo)
-Sistem aşağıdaki ilişkisel tablolardan oluşmaktadır:
+## 🗄️ Database Schema (8 Core Tables)
+The system relies on the following fully normalized relational entities:
 
-1. **`customers`**: Telefon numarası tekil (`@unique`) olan ana müşteri tablosu.
-2. **`addresses`**: Müşteri adresleri *(Özel kural: Bir müşterinin sadece bir adet is_default=true adresi olabilir).*
-3. **`menu_categories`**: Menü kategorileri.
-4. **`menu_items`**: Menü ürünleri ve anlık stok/uygunluk durumları.
-5. **`orders`**: Siparişler, sipariş durumları (`OrderStatus`) ve ödeme durumları (`PaymentStatus`).
-6. **`order_items`**: Fiyat değişimi paradoksunu önlemek adına, siparişin verildiği anki birim fiyatı (**Snapshot**) tutan kalemler.
-7. **`calls`**: Yapay zeka ile yapılan telefon görüşmelerinin transkriptleri, süreleri ve durumları.
-8. **`payment_transactions`**: Ödeme sağlayıcılarının işlem dökümleri.
+1. **`customers`**: Core customer profiles indexed by a unique `phone_number`.
+2. **`addresses`**: Customer delivery locations *(Enforced partial unique index: strictly one `is_default=true` per customer)*.
+3. **`menu_categories`**: Product classifications (e.g., Main Courses, Beverages).
+4. **`menu_items`**: Menu catalog holding active price points and real-time `is_available` flags.
+5. **`orders`**: Order envelopes tracking lifecycle (`OrderStatus`) and financial state (`PaymentStatus`).
+6. **`order_items`**: Order line items capturing a strict historical **price snapshot** (`unit_price`) at the exact moment of checkout to prevent the price change paradox.
+7. **`calls`**: Audio call logs containing raw AI transcripts, call durations, and status enums.
+8. **`payment_transactions`**: Financial audit logs for third-party payment gateways.
 
+---
+*Built strictly adhering to Git-Flow principles and layered domain architecture.*
