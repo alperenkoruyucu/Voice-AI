@@ -21,9 +21,6 @@ Copy the example environment file and update the `DATABASE_URL` with your local 
 ```bash
 cp .env.example .env
 ```
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/voice_ai_dev?schema=public"
-```
 
 ### 3. Run Database Migrations
 Apply the relational schema to your local PostgreSQL instance:
@@ -50,6 +47,14 @@ npm run dev
 npm start
 ```
 
+## 🔌 API Reference
+
+### Customers API
+* **`GET /api/customers?phone={number}`** : Fast lookup of a customer by phone number (returns 404 if not found).
+* **`POST /api/customers`** : Registers a new customer and their default delivery address atomically.
+* **`GET /api/customers/:id`** : Retrieves customer details, total order count, and last order date.
+* **`PUT /api/customers/:id`** : Updates a customer's basic information (name/email).
+
 ## 🗄️ Database Schema (8 Core Tables)
 The system relies on the following fully normalized relational entities:
 
@@ -58,7 +63,7 @@ The system relies on the following fully normalized relational entities:
 3. **`menu_categories`**: Product classifications (e.g., Main Courses, Beverages).
 4. **`menu_items`**: Menu catalog holding active price points and real-time `is_available` flags.
 5. **`orders`**: Order envelopes tracking lifecycle (`OrderStatus`) and financial state (`PaymentStatus`).
-6. **`order_items`**: Order line items capturing a strict historical **price snapshot** (`unit_price`) at the exact moment of checkout to prevent the price change paradox.
+6. **`order_items`**: Order line items capturing a strict historical **price snapshot** (`unit_price`) at the exact moment of checkout.
 7. **`calls`**: Audio call logs containing raw AI transcripts, call durations, and status enums.
 8. **`payment_transactions`**: Financial audit logs for third-party payment gateways.
 
