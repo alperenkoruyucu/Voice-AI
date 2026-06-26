@@ -55,6 +55,11 @@ npm start
 * **`GET /api/customers/:id`** : Retrieves customer details, total order count, and last order date.
 * **`PUT /api/customers/:id`** : Updates a customer's basic information (name/email).
 
+### Addresses API
+* **`POST /api/customers/:id/addresses`** : Adds a delivery address to a customer *(Auto-swaps the primary default flag if requested)*.
+* **`PUT /api/customers/:id/addresses/:addressId`** : Updates an existing address.
+* **`DELETE /api/customers/:id/addresses/:addressId`** : Removes an address *(Returns 204 No Content; strictly blocked for default addresses)*.
+
 ## 🗄️ Database Schema (8 Core Tables)
 The system relies on the following fully normalized relational entities:
 

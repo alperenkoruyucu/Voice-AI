@@ -1,5 +1,6 @@
 const express = require('express');
 const customerController = require('../controllers/customerControllers');
+const addressRoutes = require('./addressRoutes');
 const router = express.Router();
 
 // 1. GET /api/customers?phone=...
@@ -13,5 +14,8 @@ router.get('/:id', customerController.getCustomerById);
 
 // 4. PUT /api/customers/:id
 router.put('/:id', customerController.updateCustomer);
+
+// 5. Nested Address Routes for /api/customers/:id/addresses
+router.use('/:id/addresses', addressRoutes);
 
 module.exports = router;
