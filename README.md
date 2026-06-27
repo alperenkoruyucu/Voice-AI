@@ -60,6 +60,13 @@ npm start
 * **`PUT /api/customers/:id/addresses/:addressId`** : Updates an existing address.
 * **`DELETE /api/customers/:id/addresses/:addressId`** : Removes an address *(Returns 204 No Content; strictly blocked for default addresses)*.
 
+### Menu API
+* **`GET /api/menu`** : Retrieves the full menu grouped by categories and nested items.
+* **`GET /api/menu/items/:id`** : Retrieves details of a single menu item.
+* **`POST /api/menu/items`** : Creates a new menu item *(Admin)*.
+* **`PUT /api/menu/items/:id`** : Updates a menu item *(Admin)*.
+* **`DELETE /api/menu/items/:id`** : Smart deletion *(Executes soft-delete if item is bound to active/historical orders; hard-deletes otherwise)*.
+
 ## 🗄️ Database Schema (8 Core Tables)
 The system relies on the following fully normalized relational entities:
 
