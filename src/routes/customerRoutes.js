@@ -1,13 +1,15 @@
 const express = require('express');
 const customerController = require('../controllers/customerControllers');
 const addressRoutes = require('./addressRoutes');
+const validate = require('../middlewares/validate');
+const { createCustomerSchema } = require('../validators/customerValidator');
 const router = express.Router();
 
 // 1. GET /api/customers?phone=...
 router.get('/', customerController.getCustomerByPhone);
 
 // 2. POST /api/customers
-router.post('/', customerController.createCustomer);
+router.post('/', validate(createCustomerSchema), customerController.createCustomer);
 
 // 3. GET /api/customers/:id
 router.get('/:id', customerController.getCustomerById);
