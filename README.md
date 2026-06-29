@@ -67,6 +67,12 @@ npm start
 * **`PUT /api/menu/items/:id`** : Updates a menu item *(Admin)*.
 * **`DELETE /api/menu/items/:id`** : Smart deletion *(Executes soft-delete if item is bound to active/historical orders; hard-deletes otherwise)*.
 
+### Orders API
+* **`POST /api/orders`** : Creates an order with strictly computed server-side price snapshots.
+* **`GET /api/orders`** : Retrieves paginated orders with optional `status` and `date` (YYYY-MM-DD) filtering.
+* **`GET /api/orders/:id`** : Retrieves full detail of a single order (customer, address, line items).
+* **`PATCH /api/orders/:id/status`** : Advances order lifecycle via a strict unidirectional State Machine *(Admin)*.
+
 ## 🗄️ Database Schema (8 Core Tables)
 The system relies on the following fully normalized relational entities:
 
