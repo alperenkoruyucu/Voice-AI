@@ -7,6 +7,7 @@ A robust, production-ready backend service for voice-AI-driven food ordering and
 - **Framework:** Express.js
 - **Database:** PostgreSQL
 - **ORM:** Prisma v7 (Pg-Adapter)
+- **Validation:** Zod v4 *(Fail-Fast Pipeline)*
 - **Logger:** Pino & Pino-Pretty
 
 ## 📦 Getting Started
@@ -17,73 +18,52 @@ npm install
 ```
 
 ### 2. Configure Environment Variables
-Copy the example environment file and update the `DATABASE_URL` with your local PostgreSQL credentials:
+Copy the example environment file and set your local credentials:
 ```bash
 cp .env.example .env
 ```
+Ensure your `.env` contains the required flags:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/voice_ai_dev?schema=public"
+NODE_ENV="development"
+```
 
-### 3. Run Database Migrations
-Apply the relational schema to your local PostgreSQL instance:
+### 3. Run Database Migrations & Generate ORM Engine
 ```bash
 npx prisma migrate dev
-```
-Generate the Prisma Client (v7 JS Engine) to match the database schema:
-```bash
 npx prisma generate
 ```
 
 ### 4. Seed the Database
-Populate the database with initial menu categories, 12 sample menu items, and 3 VIP test customers for local development:
+Populate initial menu categories, 12 sample items, and 3 VIP test customers:
 ```bash
 npm run seed
 ```
 
 ### 5. Start the Server
 ```bash
-# Development mode (with nodemon auto-reload)
-npm run dev
-
-# Production mode
-npm start
+npm run dev   # Development mode with nodemon
 ```
 
-## 🔌 API Reference
+## 🧪 Instant API Testing
+A pre-configured Postman suite is included in the root directory. 
+Simply import **`postman_collection.json`** into your Postman application to instantly verify all core lifecycles, transactional edge cases, and Zod trigger validations.
 
-### Customers API
-* **`GET /api/customers?phone={number}`** : Fast lookup of a customer by phone number (returns 404 if not found).
-* **`POST /api/customers`** : Registers a new customer and their default delivery address atomically.
-* **`GET /api/customers/:id`** : Retrieves customer details, total order count, and last order date.
-* **`PUT /api/customers/:id`** : Updates a customer's basic information (name/email).
-
-### Addresses API
-* **`POST /api/customers/:id/addresses`** : Adds a delivery address to a customer *(Auto-swaps the primary default flag if requested)*.
-* **`PUT /api/customers/:id/addresses/:addressId`** : Updates an existing address.
-* **`DELETE /api/customers/:id/addresses/:addressId`** : Removes an address *(Returns 204 No Content; strictly blocked for default addresses)*.
-
-### Menu API
-* **`GET /api/menu`** : Retrieves the full menu grouped by categories and nested items.
-* **`GET /api/menu/items/:id`** : Retrieves details of a single menu item.
-* **`POST /api/menu/items`** : Creates a new menu item *(Admin)*.
-* **`PUT /api/menu/items/:id`** : Updates a menu item *(Admin)*.
-* **`DELETE /api/menu/items/:id`** : Smart deletion *(Executes soft-delete if item is bound to active/historical orders; hard-deletes otherwise)*.
-
-### Orders API
-* **`POST /api/orders`** : Creates an order with strictly computed server-side price snapshots.
-* **`GET /api/orders`** : Retrieves paginated orders with optional `status` and `date` (YYYY-MM-DD) filtering.
-* **`GET /api/orders/:id`** : Retrieves full detail of a single order (customer, address, line items).
-* **`PATCH /api/orders/:id/status`** : Advances order lifecycle via a strict unidirectional State Machine *(Admin)*.
+## 🛡️ Architecture & Safeguards
+* **Strict Input Validation:** All inbound payloads pass through declarative `Zod` schemas prior to reaching controller logic.
+* **Centralized Error Handling:** Uncaught exceptions and ORM constraint violations (`P2002`, `P2025`) are intercepted by a global 4-parameter Express middleware. Stack traces are strictly stripped in non-development environments to prevent reconnaissance leakage.
+* **Financial Integrity:** Order line items persist immutable checkout price snapshots (`unit_price`) server-side, completely ignoring client-computed totals.
+* **State Machine:** Order lifecycle progression is strictly unidirectional (`RECEIVED` -> `PREPARING` -> `DELIVERING` -> `COMPLETED`).
 
 ## 🗄️ Database Schema (8 Core Tables)
-The system relies on the following fully normalized relational entities:
-
-1. **`customers`**: Core customer profiles indexed by a unique `phone_number`.
-2. **`addresses`**: Customer delivery locations *(Enforced partial unique index: strictly one `is_default=true` per customer)*.
-3. **`menu_categories`**: Product classifications (e.g., Main Courses, Beverages).
-4. **`menu_items`**: Menu catalog holding active price points and real-time `is_available` flags.
-5. **`orders`**: Order envelopes tracking lifecycle (`OrderStatus`) and financial state (`PaymentStatus`).
-6. **`order_items`**: Order line items capturing a strict historical **price snapshot** (`unit_price`) at the exact moment of checkout.
-7. **`calls`**: Audio call logs containing raw AI transcripts, call durations, and status enums.
-8. **`payment_transactions`**: Financial audit logs for third-party payment gateways.
+1. **`customers`** (`phone_number` unique B-Tree indexed)
+2. **`addresses`** *(Enforced partial unique index: strictly one `is_default=true` per customer)*
+3. **`menu_categories`**
+4. **`menu_items`** *(Hybrid deletion: soft-deletes if tied to active orders)*
+5. **`orders`**
+6. **`order_items`** *(Historical price snapshotting)*
+7. **`calls`**
+8. **`payment_transactions`**
 
 ---
 *Built strictly adhering to Git-Flow principles and layered domain architecture.*

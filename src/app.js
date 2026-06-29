@@ -7,6 +7,7 @@ const healthRouter = require('./routes/health');
 const customerRoutes = require('./routes/customerRoutes');
 const menuRoutes = require('./routes/menuRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const errorHandler = require('./middlewares/errorHandler');
 
 
 const app = express();
@@ -17,6 +18,8 @@ app.use('/api', healthRouter);
 app.use('/api/customers', customerRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);

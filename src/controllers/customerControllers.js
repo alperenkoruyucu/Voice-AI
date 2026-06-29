@@ -46,15 +46,10 @@ async function getCustomerByPhone(req, res) {
 // ============================================================================
 // 2. POST /api/customers (Creates customer + default address atomically)
 // ============================================================================
-async function createCustomer(req, res) {
+async function createCustomer(req, res, next) {
   try {
     const { phoneNumber, name, email, street, city } = req.body;
 
-    if (!phoneNumber || !street) {
-      return res.status(400).json({ error: 'Required fields missing: phoneNumber and street.' });
-    }
-
-    // Nested Write: Diplomatic creation of parent and child in one single hit
     const newCustomer = await prisma.customer.create({
       data: {
         phoneNumber,
@@ -65,7 +60,7 @@ async function createCustomer(req, res) {
             {
               street,
               city: city || 'Istanbul',
-              isDefault: true // Automatically marked as primary
+              isDefault: true
             }
           ]
         }
@@ -75,16 +70,7 @@ async function createCustomer(req, res) {
 
     return res.status(201).json(newCustomer);
   } catch (error) {
-    // P2002 is Prisma's universal code for "Unique Constraint Violation"
-    if (error.code === 'P2002') {
-      logger.warn(`Duplicate phone creation attempt: ${req.body.phoneNumber}`);
-      return res.status(400).json({ 
-        error: 'A customer with this phone number or email already exists in the system.' 
-      });
-    }
-
-    logger.error(error, 'Error in createCustomer:');
-    return res.status(500).json({ error: 'Internal server error during registration.' });
+    next(error);
   }
 }
 
