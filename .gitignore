@@ -1,6 +1,23 @@
+# Dependencies
 node_modules/
+backend/node_modules/
+admin-panel/node_modules/
+
+# Environment
 .env
+backend/.env
+admin-panel/.env
+
+# OS
 .DS_Store
+
+# Build outputs
 build/
 dist/
-/src/generated/prisma
+backend/build/
+backend/dist/
+admin-panel/build/
+admin-panel/dist/
+
+# Prisma generated
+backend/src/generated/prisma

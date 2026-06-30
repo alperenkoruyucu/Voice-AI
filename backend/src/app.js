@@ -21,7 +21,18 @@ app.use('/api/orders', orderRoutes);
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT);
+
+server.on('listening', () => {
     logger.info(`Server is running on port ${PORT}`);
+});
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        logger.error(`❌ Port ${PORT} zaten kullanımda. Mevcut process'i durdurup tekrar deneyin.`);
+    } else {
+        logger.error({ err }, '❌ Server başlatılamadı.');
+    }
+    process.exit(1);
 });
 
