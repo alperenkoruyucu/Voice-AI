@@ -70,7 +70,7 @@ async function createOrder(req, res) {
         customerId: cId,
         addressId: aId,
         totalAmount: calculatedTotal,
-        status: 'RECEIVED', // Varsayılan başlangıç statüsü (Şemanda PENDING ise PENDING yap)
+        status: 'RECEIVED', 
         items: {
           create: orderItemsPayload
         }
@@ -109,13 +109,11 @@ async function getOrders(req, res) {
     }
 
     if (date) {
-      // Expecting YYYY-MM-DD format
       const startOfDay = new Date(`${date}T00:00:00.000Z`);
       const endOfDay = new Date(`${date}T23:59:59.999Z`);
       whereClause.createdAt = { gte: startOfDay, lte: endOfDay };
     }
 
-    // Run query and total count calculation in parallel
     const [orders, totalCount] = await prisma.$transaction([
       prisma.order.findMany({
         where: whereClause,
@@ -190,13 +188,12 @@ async function updateOrderStatus(req, res) {
     const currentStatus = order.status;
     const targetStatus = status.toUpperCase();
 
-    // STATE MACHINE RULES: Defined strict unidirectional flow
     const ALLOWED_TRANSITIONS = {
       RECEIVED: ['PREPARING', 'CANCELLED'],
       PREPARING: ['DELIVERING', 'CANCELLED'],
       DELIVERING: ['COMPLETED'],
-      COMPLETED: [], // Terminal state
-      CANCELLED: []  // Terminal state
+      COMPLETED: [], 
+      CANCELLED: []  
     };
 
     const validNextStates = ALLOWED_TRANSITIONS[currentStatus] || [];
@@ -220,9 +217,47 @@ async function updateOrderStatus(req, res) {
   }
 }
 
+// ============================================================================
+// 5. GET /api/orders/stats (Dashboard Analytics & Metrics)
+// ============================================================================
+async function getDashboardStats(req, res, next) {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [todayOrderCount, pendingOrderCount, revenueAggregated] = await Promise.all([
+      prisma.order.count({
+        where: {
+          createdAt: { gte: today }
+        }
+      }),
+
+      prisma.order.count({ where: { status: 'RECEIVED' } }),
+      prisma.order.aggregate({
+        _sum: { totalAmount: true },
+        where: { status: { not: 'CANCELLED' } }
+      })
+    ]);
+
+    const totalRevenue = (revenueAggregated && revenueAggregated._sum && revenueAggregated._sum.totalAmount) 
+      ? Number(revenueAggregated._sum.totalAmount) 
+      : 0;
+
+    res.status(200).json({
+      todayOrderCount,
+      pendingOrderCount,
+      totalRevenue
+    });
+
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createOrder,
   getOrders,
   getOrderById,
-  updateOrderStatus
+  updateOrderStatus,
+  getDashboardStats 
 };
