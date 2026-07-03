@@ -4,7 +4,7 @@ export default function AppLayout() {
     const location = useLocation();
 
     const navigation = [
-        { name: 'Dashboard', href: '/'},
+        { name: 'Genel Bakış', href: '/'},
         { name: 'Siparişler', href: '/orders'},
         { name: 'Menü', href: '/menu'},
         { name: 'Müşteriler', href: '/customers'},
