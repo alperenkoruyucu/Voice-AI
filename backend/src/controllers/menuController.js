@@ -143,7 +143,6 @@ async function deleteMenuItem(req, res) {
       }
     });
 
-    // Rule Triggered: Soft Delete Pattern
     if (activeOrdersCount > 0) {
       const softDeleted = await prisma.menuItem.update({
         where: { id: itemId },
@@ -158,7 +157,6 @@ async function deleteMenuItem(req, res) {
       });
     }
 
-    // If no active orders exist, execute clean hard delete
     await prisma.menuItem.delete({ where: { id: itemId } });
 
     return res.status(204).send();
