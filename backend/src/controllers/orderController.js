@@ -8,7 +8,6 @@ async function createOrder(req, res) {
   try {
     const { customerId, addressId, items } = req.body;
 
-    // Business Rule 1: Reject orders with 0 items
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Order must contain at least one item.' });
     }
@@ -16,7 +15,6 @@ async function createOrder(req, res) {
     const cId = parseInt(customerId, 10);
     const aId = parseInt(addressId, 10);
 
-    // Verify Customer and Address exist (and address belongs to this customer!)
     const customer = await prisma.customer.findUnique({ where: { id: cId } });
     const address = await prisma.address.findFirst({ where: { id: aId, customerId: cId } });
 
@@ -24,25 +22,21 @@ async function createOrder(req, res) {
       return res.status(404).json({ error: 'Customer or specified Address not found.' });
     }
 
-    // Extract distinct requested menu item IDs
     const requestedItemIds = items.map(i => parseInt(i.menuItemId, 10));
 
-    // Fetch live prices directly from DB (NEVER TRUST CLIENT PRICES)
     const dbMenuItems = await prisma.menuItem.findMany({
       where: {
         id: { in: requestedItemIds },
-        isAvailable: true // Item must be actively available
+        isAvailable: true
       }
     });
 
-    // If DB returned fewer items than requested, someone ordered an unavailable/fake item
     if (dbMenuItems.length !== new Set(requestedItemIds).size) {
       return res.status(400).json({ error: 'One or more requested menu items are unavailable or do not exist.' });
     }
 
     let calculatedTotal = 0;
 
-    // Build the snapshot payload
     const orderItemsPayload = items.map(clientItem => {
       const dbItem = dbMenuItems.find(m => m.id === parseInt(clientItem.menuItemId, 10));
       const quantity = parseInt(clientItem.quantity, 10);
@@ -51,7 +45,7 @@ async function createOrder(req, res) {
         throw new Error('INVALID_QUANTITY');
       }
 
-      const unitPrice = dbItem.price; // Captured strictly at this exact millisecond
+      const unitPrice = dbItem.price;
       const subtotal = unitPrice * quantity;
       
       calculatedTotal += subtotal;
@@ -64,7 +58,6 @@ async function createOrder(req, res) {
       };
     });
 
-    // Atomic Creation of Order and OrderItems
     const newOrder = await prisma.order.create({
       data: {
         customerId: cId,
