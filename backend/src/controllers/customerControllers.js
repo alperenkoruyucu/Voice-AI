@@ -6,39 +6,47 @@ const logger = require('../config/logger');
 // ============================================================================
 async function getCustomerByPhone(req, res) {
   try {
-    const { phone } = req.query;
+    const { phone, search } = req.query;
 
-    // Standard REST: If no query param is passed, return the whole list
-    if (!phone) {
-      const allCustomers = await prisma.customer.findMany({
-        include: { addresses: true },
+    // SENARYO A: Arama kutusundan (Frontend) ?search= ile kelime gelirse
+    if (search) {
+      const customers = await prisma.customer.findMany({
+        where: {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { phoneNumber: { contains: search } }
+          ]
+        },
         orderBy: { createdAt: 'desc' }
       });
-      return res.status(200).json(allCustomers);
+      return res.status(200).json(customers);
     }
 
-    // URL ENCODING TRAP FIX: 
-    // Browsers/Postman often convert the "+" sign in "?phone=+90555" into a space " 90555". 
-    // We safely restore the "+" sign if it got corrupted.
-    const sanitizedPhone = phone.trim().replace(/^ /, '+');
-
-    const customer = await prisma.customer.findUnique({
-      where: { phoneNumber: sanitizedPhone },
-      include: {
-        addresses: {
-          orderBy: { isDefault: 'desc' } // Default address arrives at array[0]
+    // SENARYO B: Eski sistem ?phone= gelirse (Senin yazdığın URL Encoding Koruması)
+    if (phone) {
+      const sanitizedPhone = phone.trim().replace(/^ /, '+');
+      const customer = await prisma.customer.findUnique({
+        where: { phoneNumber: sanitizedPhone },
+        include: {
+          addresses: { orderBy: { isDefault: 'desc' } }
         }
-      }
-    });
+      });
 
-    // Acceptance Criteria: Unknown phone must return 404, strictly NOT 500
-    if (!customer) {
-      return res.status(404).json({ error: 'Customer not found with the provided phone number.' });
+      if (!customer) {
+        return res.status(404).json({ error: 'Customer not found with the provided phone number.' });
+      }
+      return res.status(200).json(customer); // Frontend tek obje dönmesini bekliyor
     }
 
-    return res.status(200).json(customer);
+    // SENARYO C: Hiçbir şey gelmezse tüm listeyi dön
+    const allCustomers = await prisma.customer.findMany({
+      include: { addresses: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    return res.status(200).json(allCustomers);
+    
   } catch (error) {
-    logger.error(error, 'Error in getCustomerByPhone:');
+    logger.error(error, 'Error in getCustomers:');
     return res.status(500).json({ error: 'Internal server error while searching customer.' });
   }
 }
@@ -87,14 +95,18 @@ async function getCustomerById(req, res) {
 
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
+      // FRONTEND İÇİN GÜNCELLEME: Sadece orderCount değil, tüm sipariş ve adres verisini dahil ediyoruz.
       include: {
-        _count: {
-          select: { orders: true } // Let Postgres count orders magically
+        addresses: {
+          orderBy: { isDefault: 'desc' }
         },
         orders: {
           orderBy: { createdAt: 'desc' },
-          take: 1, // Grab only the single most recent order snapshot
-          select: { createdAt: true }
+          include: { 
+            items: {
+              include: { menuItem: { select: { name: true } } } // İŞTE BU SATIR EKLENDİ!
+            } 
+          }
         }
       }
     });
@@ -103,18 +115,8 @@ async function getCustomerById(req, res) {
       return res.status(404).json({ error: 'Customer not found.' });
     }
 
-    // Shape the payload strictly adhering to the requested goal specs
-    const payload = {
-      id: customer.id,
-      phoneNumber: customer.phoneNumber,
-      name: customer.name,
-      email: customer.email,
-      createdAt: customer.createdAt,
-      orderCount: customer._count.orders,
-      lastOrderDate: customer.orders.length > 0 ? customer.orders[0].createdAt : null
-    };
-
-    return res.status(200).json(payload);
+    // Tüm nesneyi olduğu gibi dönüyoruz ki Frontend Modal'ı içindeki dizileri (array) kullanabilsin.
+    return res.status(200).json(customer);
   } catch (error) {
     logger.error(error, 'Error in getCustomerById:');
     return res.status(500).json({ error: 'Internal server error fetching details.' });
