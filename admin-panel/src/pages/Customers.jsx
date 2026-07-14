@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../utils/axios';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import EmptyState from '../components/EmptyState';
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -27,7 +28,7 @@ export default function Customers() {
       setCustomers(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch customers.');
+      setError('Failed to fetch customers. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -82,14 +83,14 @@ export default function Customers() {
           <input
             type="text"
             placeholder="İsim veya telefon numarası (örn: 532...)"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <div className="flex gap-2">
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors text-sm"
             >
               Ara
             </button>
@@ -97,7 +98,7 @@ export default function Customers() {
               <button
                 type="button"
                 onClick={handleClearSearch}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors text-sm font-medium"
               >
                 Temizle
               </button>
@@ -106,19 +107,22 @@ export default function Customers() {
         </form>
       </div>
 
-      {/* Data Table */}
+      {/* Data Table with Responsive Polish */}
       {loading ? (
         <LoadingSpinner message="Müşteriler yükleniyor..." />
       ) : error ? (
         <ErrorMessage message={error} />
       ) : customers.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl shadow border border-gray-200">
-          <p className="text-gray-500 text-lg">Müşteri bulunamadı.</p>
-        </div>
+        <EmptyState 
+          title="Müşteri Bulunamadı" 
+          message="Aradığınız isim veya telefon numarasına ait bir kayıt yok. Arama kriterlerinizi değiştirmeyi veya temizlemeyi deneyin."
+          actionLabel={searchTerm ? "Aramayı Temizle" : undefined}
+          onAction={searchTerm ? handleClearSearch : undefined}
+        />
       ) : (
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
                   <th className="py-3 px-6">ID</th>
@@ -130,17 +134,17 @@ export default function Customers() {
               </thead>
               <tbody className="divide-y divide-gray-200 text-sm">
                 {customers.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50">
+                  <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                     <td className="py-4 px-6 font-bold text-gray-900">#{c.id}</td>
-                    <td className="py-4 px-6 font-medium">{c.name || 'İsimsiz'}</td>
+                    <td className="py-4 px-6 font-medium text-gray-800">{c.name || 'İsimsiz'}</td>
                     <td className="py-4 px-6 text-gray-600">{c.phoneNumber}</td>
-                    <td className="py-4 px-6 text-gray-500">
+                    <td className="py-4 px-6 text-gray-500 text-xs">
                       {new Date(c.createdAt).toLocaleDateString('tr-TR')}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <button
                         onClick={() => handleOpenDetail(c.id)}
-                        className="text-blue-600 hover:text-blue-800 font-medium bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                        className="text-blue-600 hover:text-blue-800 font-medium bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors text-xs border border-blue-200 shadow-sm"
                       >
                         Detay / Geçmiş
                       </button>
@@ -156,14 +160,14 @@ export default function Customers() {
       {/* Detail Modal */}
       {selectedCustomer && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
             
             <div className="bg-gray-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg">Müşteri Profili #{selectedCustomer.id}</h3>
               <button onClick={handleCloseDetail} className="text-gray-400 hover:text-white text-xl font-bold">✕</button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-6">
+            <div className="p-6 overflow-y-auto space-y-6 flex-1">
               {detailLoading ? (
                 <div className="py-8"><LoadingSpinner message="Profil yükleniyor..." /></div>
               ) : detailError ? (
@@ -173,24 +177,23 @@ export default function Customers() {
                   {/* Customer Info Card */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
                     <div>
-                      <p className="text-xs font-bold text-gray-400 uppercase">Ad Soyad</p>
-                      <p className="font-bold text-gray-900 text-lg">{selectedCustomer.name || 'Belirtilmemiş'}</p>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ad Soyad</p>
+                      <p className="font-bold text-gray-900 text-lg mt-0.5">{selectedCustomer.name || 'Belirtilmemiş'}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-gray-400 uppercase">Telefon</p>
-                      <p className="font-medium text-gray-800 text-lg">{selectedCustomer.phoneNumber}</p>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Telefon</p>
+                      <p className="font-medium text-gray-800 text-lg mt-0.5">{selectedCustomer.phoneNumber}</p>
                     </div>
                     <div className="sm:col-span-2 pt-2 border-t border-gray-200 mt-2">
-                      <p className="text-xs font-bold text-gray-400 uppercase">Kayıtlı Adresler</p>
-                      {/* Plural "addresses" used everywhere here */}
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Kayıtlı Adresler</p>
                       {Array.isArray(selectedCustomer.addresses) && selectedCustomer.addresses.length > 0 ? (
-                        <ul className="list-disc list-inside mt-1 text-gray-700 text-sm">
+                        <ul className="list-disc list-inside mt-1 text-gray-700 text-sm space-y-1">
                           {selectedCustomer.addresses.map(addr => (
-                            <li key={addr.id}>{addr.street}, {addr.city}</li>
+                            <li key={addr.id} className="font-medium">{addr.street}, {addr.city}</li>
                           ))}
                         </ul>
                       ) : selectedCustomer.addresses && !Array.isArray(selectedCustomer.addresses) ? (
-                         <p className="mt-1 text-gray-700 text-sm">{selectedCustomer.addresses.street}, {selectedCustomer.addresses.city}</p>
+                         <p className="mt-1 text-gray-700 text-sm font-medium">{selectedCustomer.addresses.street}, {selectedCustomer.addresses.city}</p>
                       ) : (
                         <p className="mt-1 text-gray-500 italic text-sm">Adres kaydı yok.</p>
                       )}
@@ -201,25 +204,28 @@ export default function Customers() {
                   <div>
                     <h4 className="font-bold text-gray-800 mb-3 border-b pb-2">Sipariş Geçmişi</h4>
                     {!selectedCustomer.orders || selectedCustomer.orders.length === 0 ? (
-                      <p className="text-gray-500 text-sm">Bu müşteriye ait geçmiş sipariş bulunamadı.</p>
+                      <EmptyState 
+                        title="Geçmiş Sipariş Yok" 
+                        message="Bu müşteriye ait sisteme kayıtlı herhangi bir geçmiş sipariş bulunmuyor."
+                      />
                     ) : (
                       <div className="space-y-3">
                         {selectedCustomer.orders.map((order) => (
                           <div key={order.id} className="flex flex-col p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow transition-shadow">
                             
                             {/* Summary Information */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <div>
                                 <p className="font-bold text-gray-900 text-sm">Sipariş #{order.id}</p>
                                 <p className="text-xs text-gray-500">
                                   {new Date(order.createdAt).toLocaleString('tr-TR')}
                                 </p>
                               </div>
-                              <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                                <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-700">
-                                  {order.status}
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold px-2.5 py-1 bg-gray-100 border border-gray-200 rounded-full text-gray-700">
+                                  ● {order.status}
                                 </span>
-                                <span className="font-bold text-blue-600">
+                                <span className="font-bold text-blue-600 text-base">
                                   ₺{Number(order.totalAmount).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                 </span>
                               </div>
@@ -228,16 +234,15 @@ export default function Customers() {
                             {/* Ordered Items List */}
                             {order.items && order.items.length > 0 && (
                               <div className="mt-3 pt-3 border-t border-gray-100">
-                                <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Sipariş İçeriği:</p>
+                                <p className="text-xs font-semibold text-gray-400 uppercase mb-1.5">Sipariş İçeriği:</p>
                                 <ul className="text-xs text-gray-700 space-y-1">
                                   {order.items.map(item => (
-                                    <li key={item.id} className="flex justify-between items-center">
+                                    <li key={item.id} className="flex justify-between items-center bg-gray-50 p-1.5 rounded">
                                       <span>
-                                        <span className="font-bold text-gray-900">{item.quantity}x</span> 
-                                        {/* Display item name if available from backend, fallback to ID */}
-                                        {item.menuItem?.name ? ` ${item.menuItem.name}` : ` Ürün (Kodu: ${item.menuItemId})`}
+                                        <span className="font-bold text-gray-900 mr-1">{item.quantity}x</span> 
+                                        {item.menuItem?.name ? item.menuItem.name : `Ürün (Kodu: ${item.menuItemId})`}
                                       </span>
-                                      <span className="font-medium text-gray-600">
+                                      <span className="font-semibold text-gray-600">
                                         ₺{Number(item.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                       </span>
                                     </li>
