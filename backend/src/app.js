@@ -10,6 +10,7 @@ const customerRoutes = require('./routes/customerRoutes');
 const menuRoutes = require('./routes/menuRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const errorHandler = require('./middlewares/errorHandler');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 
 const app = express();
@@ -22,7 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
-
+app.use('/api/payments', paymentRoutes);
 app.use(errorHandler);
 
 const server = app.listen(PORT);
