@@ -41,7 +41,7 @@ const createPaymentLink = async (req, res) => {
       currency: Iyzipay.CURRENCY.TRY,
       basketId: order.id.toString(),
       paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
-      callbackUrl: 'http://localhost:5173/payment/callback', // Ödeme bitince gidilecek yer
+      callbackUrl: 'http://localhost:3000/api/payments/webhook', // Ödeme bitince gidilecek yer
       enabledInstallments: [1], // Tek çekim
       buyer: {
         id: order.customer.id.toString(),
@@ -107,4 +107,75 @@ const createPaymentLink = async (req, res) => {
   }
 };
 
-module.exports = { createPaymentLink };
+const handlePaymentWebhook = async (req, res) => {
+  try {
+    const token = req.body?.token;
+
+    if (!token) {
+      return res.status(400).json({ error: "Token eksik." });
+    }
+
+    
+    const transaction = await prisma.paymentTransaction.findFirst({
+      where: { transactionId: token },
+      include: { order: true }
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ error: "İşlem kaydı bulunamadı." });
+    }
+
+    
+    if (transaction.status !== 'PENDING') {
+      const isSuccess = transaction.status === 'SUCCESS';
+      return res.redirect(`http://localhost:5173/payment/result?status=${isSuccess ? 'success' : 'failed'}`);
+    }
+
+    iyzipay.checkoutForm.retrieve({
+      locale: 'tr',
+      token: token
+    }, async (err, result) => {
+      
+    
+      if (err || result.status === 'failure' || result.paymentStatus !== 'SUCCESS') {
+        
+        await prisma.order.update({
+          where: { id: transaction.orderId },
+          data: { paymentStatus: 'FAILED' }
+        });
+        await prisma.paymentTransaction.update({
+          where: { id: transaction.id },
+          data: { status: 'FAILED' }
+        });
+
+        return res.redirect('http://localhost:5173/payment/result?status=failed');
+      }
+
+
+      if (result.paymentStatus === 'SUCCESS') {
+        
+        await prisma.order.update({
+          where: { id: transaction.orderId },
+          data: { 
+            paymentStatus: 'PAID',
+            status: 'PREPARING' 
+          }
+        });
+
+        await prisma.paymentTransaction.update({
+          where: { id: transaction.id },
+          data: { status: 'SUCCESS' }
+        });
+
+        return res.redirect('http://localhost:5173/payment/result?status=success');
+      }
+    });
+
+  } catch (error) {
+    console.error("Webhook işleme hatası:", error);
+    return res.status(500).json({ error: "Sunucu hatası" });
+  }
+};
+
+
+module.exports = { createPaymentLink, handlePaymentWebhook };
